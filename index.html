@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>2048</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,"Microsoft YaHei",sans-serif;background:#faf8ef;color:#776e65;display:flex;justify-content:center;min-height:100vh;touch-action:none}
+.wrap{width:min(92vw,480px);padding:16px 0}
+.head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+h1{font-size:clamp(40px,12vw,64px);color:#776e65}
+.scores{display:flex;gap:6px}
+.sc{background:#bbada0;color:#fff;border-radius:6px;padding:6px 12px;text-align:center;min-width:64px}
+.sc span{display:block;font-size:12px;color:#eee4da}.sc b{font-size:20px}
+.bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;font-size:14px}
+button{background:#8f7a66;color:#fff;border:0;border-radius:6px;padding:10px 16px;font-size:16px;font-weight:bold;cursor:pointer}
+.board{position:relative;background:#bbada0;border-radius:8px;padding:3%;display:grid;grid-template-columns:repeat(4,1fr);gap:3%;aspect-ratio:1}
+.cell{background:rgba(238,228,218,.35);border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:clamp(20px,8vw,44px);transition:transform .1s}
+.pop{animation:pop .15s}@keyframes pop{0%{transform:scale(.5)}100%{transform:scale(1)}}
+.v2{background:#eee4da}.v4{background:#ede0c8}.v8{background:#f2b179;color:#fff}.v16{background:#f59563;color:#fff}.v32{background:#f67c5f;color:#fff}.v64{background:#f65e3b;color:#fff}.v128{background:#edcf72;color:#fff;font-size:clamp(18px,7vw,38px)}.v256{background:#edcc61;color:#fff;font-size:clamp(18px,7vw,38px)}.v512{background:#edc850;color:#fff;font-size:clamp(18px,7vw,38px)}.v1024,.v2048,.vbig{background:#edc53f;color:#fff;font-size:clamp(14px,5.5vw,30px)}.vbig{background:#3c3a32}
+.over{position:absolute;inset:0;background:rgba(238,228,218,.8);border-radius:8px;display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;font-size:36px;font-weight:bold}
+.over.show{display:flex}
+</style></head><body>
+<div class="wrap">
+<div class="head"><h1>2048</h1><div class="scores"><div class="sc"><span>分数</span><b id="score">0</b></div><div class="sc"><span>最高</span><b id="best">0</b></div></div></div>
+<div class="bar"><p>方向键 / 滑动 合并数字，得到 <b>2048</b>!</p><button id="new">新游戏</button></div>
+<div class="board" id="board"><div class="over" id="over"><div id="msg">游戏结束</div><button id="retry">再来一局</button></div></div>
+</div>
+<script>
+(function(){
+var N=4,g,score,best=+(localStorage.getItem('best2048')||0),won=false,board=document.getElementById('board'),cells=[];
+for(var i=0;i<N*N;i++){var c=document.createElement('div');c.className='cell';board.appendChild(c);cells.push(c);}
+function empty(){var e=[];for(var r=0;r<N;r++)for(var c=0;c<N;c++)if(!g[r][c])e.push([r,c]);return e;}
+function add(){var e=empty();if(!e.length)return null;var p=e[Math.floor(Math.random()*e.length)];g[p[0]][p[1]]=Math.random()<.9?2:4;return p;}
+function init(){g=[];for(var r=0;r<N;r++)g.push([0,0,0,0]);score=0;won=false;document.getElementById('over').classList.remove('show');add();add();draw();}
+function draw(np){for(var r=0;r<N;r++)for(var c=0;c<N;c++){var v=g[r][c],el=cells[r*N+c];el.textContent=v||'';el.className='cell'+(v?(v>2048?' vbig':' v'+v):'')+(np&&np[0]==r&&np[1]==c?' pop':'');}
+document.getElementById('score').textContent=score;if(score>best){best=score;localStorage.setItem('best2048',best);}document.getElementById('best').textContent=best;}
+function slide(row){var a=row.filter(function(x){return x}),out=[];for(var i=0;i<a.length;i++){if(a[i]===a[i+1]){out.push(a[i]*2);score+=a[i]*2;if(a[i]*2===2048)won=true;i++;}else out.push(a[i]);}while(out.length<N)out.push(0);return out;}
+function move(d){var moved=false;for(var k=0;k<N;k++){var line=[];for(var j=0;j<N;j++){var r=d=='l'||d=='r'?k:j,c=d=='l'||d=='r'?j:k;line.push(g[r][c]);}
+if(d=='r'||d=='d')line.reverse();var nl=slide(line);if(d=='r'||d=='d')nl.reverse();
+for(var j=0;j<N;j++){var r=d=='l'||d=='r'?k:j,c=d=='l'||d=='r'?j:k;if(g[r][c]!==nl[j])moved=true;g[r][c]=nl[j];}}
+if(moved){var p=add();draw(p);if(won){won=false;show('你赢了! 2048');}else if(dead())show('游戏结束');}}
+function dead(){if(empty().length)return false;for(var r=0;r<N;r++)for(var c=0;c<N;c++){if(c<N-1&&g[r][c]==g[r][c+1])return false;if(r<N-1&&g[r][c]==g[r+1][c])return false;}return true;}
+function show(m){document.getElementById('msg').textContent=m;document.getElementById('over').classList.add('show');}
+document.addEventListener('keydown',function(e){var m={ArrowLeft:'l',ArrowRight:'r',ArrowUp:'u',ArrowDown:'d'}[e.key];if(m){e.preventDefault();move(m);}});
+var sx,sy;board.addEventListener('touchstart',function(e){sx=e.touches[0].clientX;sy=e.touches[0].clientY;},{passive:true});
+board.addEventListener('touchend',function(e){var dx=e.changedTouches[0].clientX-sx,dy=e.changedTouches[0].clientY-sy;if(Math.max(Math.abs(dx),Math.abs(dy))<25)return;move(Math.abs(dx)>Math.abs(dy)?(dx>0?'r':'l'):(dy>0?'d':'u'));},{passive:true});
+document.addEventListener('touchmove',function(e){e.preventDefault();},{passive:false});
+document.getElementById('new').onclick=init;document.getElementById('retry').onclick=init;init();
+})();
+</script></body></html>
